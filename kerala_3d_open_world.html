@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Kerala 3D Open World</title>
+<script type="text/javascript" src="https://gc.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=WMcxKJ70LpxnT6jeQoEsPcbxa2437auULSgt9MpfnbBz4GcPg6MR1XQ3a8QxiKZGnjW_B6GnqAIs4o3LyHeGuAekBtYR6XgDab0Lb7FNsT73PrKH9n09HFGjVnlRKGtjdbm5rhh_rJKCaQcOeLvBVFt7lm0ORzhshP_xLh0vqmfBivB0rO-rx4qY-fbziPSfJ1UFw1qNNT6wptY5nFxexO_7n2xItu8ZgvJyyL0wCbRkP5yuDCM7tSvH8y2feT3f2FEb8Rv-NxSMVgp1niP3Qa44S2K4DA6a0sC7ClTTHon2PBlmw5UBxxpN9CuDF-N5L7kOZrWkx62IuQaDxXOOQw" charset="UTF-8"></script><link rel="stylesheet" crossorigin="anonymous" href="https://gc.kis.v2.scr.kaspersky-labs.com/E3E8934C-235A-4B0E-825A-35A08381A191/abn/main.css?attr=aHR0cHM6Ly9jaGF0Z3B0LmNvbS9iYWNrZW5kLWFwaS9lc3R1YXJ5L2NvbnRlbnQ_aWQ9ZmlsZV8wMDAwMDAwMGFjMTg4MWY1YTUwMmUzY2E5YWYxYzNhNCZmbj1rZXJhbGFfM2Rfb3Blbl93b3JsZC5odG1sJmNkPWF0dGFjaG1lbnQmdHM9NDk2OTczJnA9ZnMmY2lkPTEmc2lnPWRlYTFiOGZiNDZlOGIwNGI4NDI5YmZlODdkOWFmNjRhMDU2ODVkZTc5MzMyMDg2MjY2ZGUwNjQyOTg0MGNhNDYmdj0w"/><style>
+html,body{margin:0;overflow:hidden;background:#111;font-family:Arial;color:white}
+#hud{position:fixed;z-index:5;top:12px;left:12px;padding:12px 15px;border-radius:14px;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);min-width:220px}
+#hud b{font-size:20px;color:#ffe082} #help{font-size:12px;line-height:1.5;margin-top:5px}
+#place{color:#b3e5fc;font-weight:bold} #debug{color:#a5d6a7}
+#loading{position:fixed;inset:0;display:grid;place-items:center;background:#123;z-index:20;font-size:22px}
+#mobile{position:fixed;z-index:10;bottom:18px;left:18px;display:grid;grid-template-columns:58px 58px 58px;gap:6px}
+#mobile button,#actions button{border:0;border-radius:13px;background:rgba(0,0,0,.58);color:#fff;font-size:22px;width:58px;height:52px}
+#actions{position:fixed;z-index:10;right:18px;bottom:18px;display:flex;flex-direction:column;gap:6px}
+#actions button{width:100px;font-size:13px}
+@media(min-width:900px){#mobile{opacity:.3}}
+</style>
+</head>
+<body>
+<div id="loading">🌴 Loading Kerala 3D World…</div>
+<div id="hud">
+<b>🌴 Kerala 3D</b><br>
+<span id="place">📍 Kerala</span><br>
+<span id="vehicle">🚶 Walking</span> · <span id="speed">0 km/h</span><br>
+<span id="debug">FPS: --</span>
+<div id="help">WASD / arrows: move · E: vehicle · 1-5: vehicles · M: map · R: reset</div>
+</div>
+<div id="mobile">
+<span></span><button data-k="up">▲</button><span></span>
+<button data-k="left">◀</button><button data-k="down">▼</button><button data-k="right">▶</button>
+</div>
+<div id="actions"><button id="enter">🚗 Vehicle</button><button id="map">🗺️ Map</button><button id="reset">↻ Reset</button></div>
+
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+import {OrbitControls} from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x87ceeb);
+scene.fog=new THREE.Fog(0x87ceeb,180,850);
+const camera=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,.1,1600);
+camera.position.set(0,35,55);
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.8)); renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.enablePan=false; controls.enableZoom=false; controls.enableRotate=false;
+
+scene.add(new THREE.HemisphereLight(0xd9f3ff,0x355a2c,2.0));
+const sun=new THREE.DirectionalLight(0xffffff,3.2); sun.position.set(120,220,80); sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048); scene.add(sun);
+
+const world=new THREE.Group(); scene.add(world);
+const mat=(c)=>new THREE.MeshStandardMaterial({color:c,roughness:.9});
+const grass=mat(0x4f9a45), roadmat=mat(0x3e4347), lineMat=mat(0xf5f5dc), water=mat(0x2196c9);
+const wood=mat(0x704b2b), leaf=mat(0x176b35), roof=mat(0x9d2f25), wall=mat(0xf0d6a5);
+
+function box(name,x,y,z,sx,sy,sz,m,sh=true){
+ const g=new THREE.BoxGeometry(sx,sy,sz), o=new THREE.Mesh(g,m); o.name=name; o.position.set(x,y,z); o.castShadow=sh;o.receiveShadow=true;world.add(o);return o;
+}
+function cyl(x,y,z,r,h,m){
+ const o=new THREE.Mesh(new THREE.CylinderGeometry(r,r*.82,h,10),m);o.position.set(x,y,z);o.castShadow=true;world.add(o);return o;
+}
+function tree(x,z,scale=1){
+ cyl(x,3*scale,z,.65*scale,6*scale,wood);
+ const crown=new THREE.Mesh(new THREE.SphereGeometry(3.4*scale,10,8),leaf);
+ crown.position.set(x,7*scale,z);crown.castShadow=true;world.add(crown);
+}
+function house(x,z){
+ box("House",x,3,z,9,6,8,wall); const r=box("Roof",x,6.7,z,10,1.8,9,roof);r.rotation.y=.0;
+ box("Door",x,2.1,z-4.05,2,3,0.2,wood,false);
+}
+function palm(x,z){
+ cyl(x,5,z,.4,10,wood);
+ for(let i=0;i<7;i++){let a=i*Math.PI*2/7; const p=new THREE.Mesh(new THREE.BoxGeometry(.35,5,.7),leaf);p.position.set(x+Math.cos(a)*2.2,10,z+Math.sin(a)*2.2);p.rotation.z=Math.cos(a)*.75;p.rotation.y=-a;p.castShadow=true;world.add(p)}
+}
+
+// Large procedural Kerala island/land
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(1400,1100,30,30),grass);
+ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;world.add(ground);
+// mountain backdrop
+for(let i=0;i<18;i++){
+ const h=35+Math.random()*55, x=280+i*48;
+ const m=new THREE.Mesh(new THREE.ConeGeometry(55+Math.random()*30,h,8),mat(0x477a46));
+ m.position.set(x,h/2,-190);m.castShadow=true;world.add(m);
+}
+// sea and backwater
+const sea=new THREE.Mesh(new THREE.PlaneGeometry(1400,280),water);sea.rotation.x=-Math.PI/2;sea.position.set(0,.05,-390);world.add(sea);
+const lake=new THREE.Mesh(new THREE.PlaneGeometry(420,150),water);lake.rotation.x=-Math.PI/2;lake.position.set(-90,.08,105);world.add(lake);
+
+// main highway
+box("Highway",0,.18,0,1200,.35,24,roadmat,false);
+for(let x=-570;x<600;x+=38) box("RoadLine",x,.38,0,18,.05,.45,lineMat,false);
+// side roads
+for(const z of [-115,115]){box("Road",0,.18,z,1200,.35,13,roadmat,false);for(let x=-570;x<600;x+=35)box("Line",x,.38,z,16,.05,.35,lineMat,false)}
+
+// scenery
+for(let i=0;i<100;i++){
+ const x=-570+Math.random()*1140,z=-300+Math.random()*600;
+ if(Math.abs(z)<35)continue;
+ if(Math.random()<.62) tree(x,z,.7+Math.random()*.55); else house(x,z);
+}
+for(let i=0;i<35;i++) palm(-560+Math.random()*1120,-280+Math.random()*250);
+
+// tourist locations along the route
+const places=[
+ ["Kovalam Beach",-520,-85,"Thiruvananthapuram"],["Ashtamudi Lake",-410,150,"Kollam"],
+ ["Gavi",-310,-150,"Pathanamthitta"],["Alappuzha Backwaters",-190,145,"Alappuzha"],
+ ["Kumarakom",-80,155,"Kottayam"],["Munnar",40,-155,"Idukki"],["Fort Kochi",150,150,"Ernakulam"],
+ ["Athirappilly Falls",255,-150,"Thrissur"],["Silent Valley",350,150,"Palakkad"],
+ ["Kottakkunnu",440,-150,"Malappuram"],["Kozhikode Beach",525,150,"Kozhikode"],
+ ["Edakkal Caves",610,-150,"Wayanad"],["Muzhappilangad Beach",690,150,"Kannur"],["Bekal Fort",770,-150,"Kasaragod"]
+];
+function landmark(p){
+ const [name,x,z,d]=p;
+ // sign
+ const pole=cyl(x,5,z,.18,10,wood);pole.castShadow=true;
+ const sign=box("Sign",x,9,z,18,4,.5,mat(0xf5c542),false);
+ sign.userData={name,d};
+ const label=document.createElement("canvas");label.width=512;label.height=128;
+ const c=label.getContext("2d");c.fillStyle="#17351f";c.font="bold 40px Arial";c.textAlign="center";c.fillText(name,256,52);c.font="26px Arial";c.fillText(d,256,95);
+ const tex=new THREE.CanvasTexture(label), sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true}));
+ sp.position.set(x,11,z);sp.scale.set(28,7,1);world.add(sp);
+ // simple landmark
+ if(name.includes("Fort")){box("Fort",x,4,z,24,8,18,mat(0x9b7046));}
+ else if(name.includes("Falls")){box("Waterfall",x,18,z,10,35,3,water,false);}
+ else if(name.includes("Lake")||name.includes("Backwaters")){const q=new THREE.Mesh(new THREE.CircleGeometry(15,32),water);q.rotation.x=-Math.PI/2;q.position.set(x,.25,z);world.add(q);}
+ else {cyl(x,5,z,7,10,leaf);}
+}
+places.forEach(landmark);
+
+// player
+let player={x:-470,z:0,heading:0,vehicle:null};
+const playerGroup=new THREE.Group();world.add(playerGroup);
+const body=new THREE.Mesh(new THREE.CapsuleGeometry(.75,1.8,4,8),mat(0x1976d2));body.position.y=1.8;body.castShadow=true;playerGroup.add(body);
+const head=new THREE.Mesh(new THREE.SphereGeometry(.62,12,10),mat(0xffc58a));head.position.y=3.5;head.castShadow=true;playerGroup.add(head);
+
+const vehicles=[
+ ["KSRTC Swift",0xd32f2f,8.5],["KSRTC Super Fast",0xa51d1d,9.5],["Jeep",0x455a64,10.5],["Car",0x1565c0,12],["Auto Rickshaw",0xfbc02d,9]
+];
+function vehicleModel(v){
+ const g=new THREE.Group(), [name,color]=v;
+ const b=new THREE.Mesh(new THREE.BoxGeometry(name.includes("KSRTC")?4.2:3.1,1.7,name.includes("KSRTC")?9:5),mat(color));
+ b.position.y=1.5;b.castShadow=true;g.add(b);
+ for(const z of [-2,2]) for(const x of [-1.5,1.5]){const w=new THREE.Mesh(new THREE.CylinderGeometry(.55,.55,.35,16),mat(0x181818));w.rotation.z=Math.PI/2;w.position.set(x,.65,z);w.castShadow=true;g.add(w)}
+ if(name.includes("KSRTC")){for(let z=-3.2;z<=3.2;z+=1.6)boxLocal(g,0,2.15,z,.8,.45,.15,0x8fd3f4)}
+ return g;
+}
+function boxLocal(g,x,y,z,sx,sy,sz,c){const o=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),mat(c));o.position.set(x,y,z);g.add(o)}
+let vehicleObj=null;
+function enterExit(){
+ if(player.vehicle===null){player.vehicle=0; vehicleObj=vehicleModel(vehicles[0]);world.add(vehicleObj);playerGroup.visible=false;}
+ else {if(vehicleObj){world.remove(vehicleObj);vehicleObj=null}player.vehicle=null;playerGroup.visible=true;}
+}
+function selectVehicle(i){if(vehicleObj)world.remove(vehicleObj);player.vehicle=i;vehicleObj=vehicleModel(vehicles[i]);world.add(vehicleObj);playerGroup.visible=false}
+
+const keys={};
+addEventListener("keydown",e=>{
+ keys[e.key.toLowerCase()]=true;
+ if(e.key.toLowerCase()==="e")enterExit();
+ if("12345".includes(e.key))selectVehicle(+e.key-1);
+ if(e.key.toLowerCase()==="m")showMap();
+ if(e.key.toLowerCase()==="r")reset();
+});
+addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
+
+function reset(){player.x=-470;player.z=0;player.heading=0;if(vehicleObj){world.remove(vehicleObj);vehicleObj=null}player.vehicle=null;playerGroup.visible=true;hideMap()}
+function showMap(){
+ const list=places.map((p,i)=>`${i+1}. ${p[3]} — ${p[0]}`).join("\\n");
+ alert("KERALA — 14 DISTRICTS\\n\\n"+list);
+}
+function hideMap(){}
+
+function update(dt){
+ let dx=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0);
+ let dz=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0);
+ if(dx||dz){let l=Math.hypot(dx,dz);dx/=l;dz/=l;player.heading=Math.atan2(dx,dz)}
+ const speed=player.vehicle===null?.20:vehicles[player.vehicle][2]*.055;
+ player.x=THREE.MathUtils.clamp(player.x+dx*speed*dt,-570,790);
+ player.z=THREE.MathUtils.clamp(player.z+dz*speed*dt,-280,280);
+ const obj=player.vehicle===null?playerGroup:vehicleObj;
+ obj.position.set(player.x,0,player.z);obj.rotation.y=player.heading;
+ // third person camera
+ const back=new THREE.Vector3(Math.sin(player.heading)*-30,18,Math.cos(player.heading)*-30);
+ camera.position.lerp(new THREE.Vector3(player.x+back.x,back.y,player.z+back.z),.08);
+ controls.target.lerp(new THREE.Vector3(player.x,2,player.z),.12);
+ const nearest=places.reduce((a,p)=>{const d=Math.hypot(player.x-p[1],player.z-p[2]);return d<a.d?{p,d}:a},{p:null,d:1e9});
+ document.getElementById("place").textContent=nearest.d<55?"📍 "+nearest.p[0]+" • "+nearest.p[3]:"📍 Exploring Kerala";
+ document.getElementById("vehicle").textContent=player.vehicle===null?"🚶 Walking":"🚘 "+vehicles[player.vehicle][0];
+ document.getElementById("speed").textContent=(player.vehicle===null?4:Math.round(vehicles[player.vehicle][2]*4))+" km/h";
+}
+
+let last=performance.now(),frames=0,sec=performance.now();
+function animate(t){
+ const dt=Math.min((t-last)/16.67,3);last=t;update(dt);renderer.render(scene,camera);
+ frames++;if(t-sec>1000){document.getElementById("debug").textContent="FPS: "+frames+" • WebGL OK";frames=0;sec=t}
+ requestAnimationFrame(animate)
+}
+addEventListener("resize",()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+document.getElementById("enter").onclick=enterExit;
+document.getElementById("map").onclick=showMap;
+document.getElementById("reset").onclick=reset;
+const km={up:"w",down:"s",left:"a",right:"d"};
+document.querySelectorAll("#mobile button").forEach(b=>{
+ const k=km[b.dataset.k];b.addEventListener("pointerdown",e=>{e.preventDefault();keys[k]=true});
+ ["pointerup","pointercancel","pointerleave"].forEach(ev=>b.addEventListener(ev,()=>keys[k]=false));
+});
+document.getElementById("loading").style.display="none";
+animate(performance.now());
+</script>
+</body>
+</html>
